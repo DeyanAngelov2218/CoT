@@ -1,0 +1,50 @@
+keep for migrations:
+
+CREATE TABLE `cot`.`symbols` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(255) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `idSecurities_UNIQUE` (`id` ASC) VISIBLE)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
+
+// TODO not sure if this isnt migration also need symbols as array of strings currently
+ const sql = 'INSERT INTO symbols (name) VALUES ?';
+ con.query(sql, [symbols], (err) => {
+   if (err) {
+     console.log(err);
+  }
+ });
+
+symbols_data
+CREATE TABLE `cot`.`symbols_data` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `week` DATE NULL,
+  `open_interest` DOUBLE NULL,
+  `comm_netto` DOUBLE NULL,
+  `comm_long` DOUBLE NULL,
+  `comm_long_oi` DOUBLE NULL,
+  `comm_short` DOUBLE NULL,
+  `comm_short_oi` DOUBLE NULL,
+  `large_netto` DOUBLE NULL,
+  `large_long` DOUBLE NULL,
+  `large_long_oi` DOUBLE NULL,
+  `large_short` DOUBLE NULL,
+  `large_short_oi` DOUBLE NULL,
+  `small_neto` DOUBLE NULL,
+  `small_long` DOUBLE NULL,
+  `small_long_oi` DOUBLE NULL,
+  `small_short` DOUBLE NULL,
+  `small_short_oi` DOUBLE NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `id_UNIQUE` (`id` ASC) VISIBLE,
+  CONSTRAINT `symbol_id`
+    FOREIGN KEY (`id`)
+    REFERENCES `cot`.`symbols` (`id`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
+
+// TODO dont need the files anymore
+XLSX.writeFile(workbook, `temp/${fileInfo.name}`, {bookType: 'xlsx', type: 'buffer'});
