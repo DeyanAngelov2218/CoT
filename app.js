@@ -3,7 +3,7 @@ const request = require('request');
 const mysql = require('mysql');
 const moment = require('moment');
 const { Observable, from, merge } = require('rxjs');
-const { filter, reduce, concat, concatAll } = require('rxjs/operators');
+const { filter, reduce, concat, concatAll, mergeMap } = require('rxjs/operators');
 const cheerio = require('cheerio');
 
 let symbols = {};
@@ -88,13 +88,15 @@ request(htmlUrls[0], (err, res, body) => {
     }
   });
 
-  console.log(out);
+  // console.log(out);
 });
 
 const createConnection = (query) => {
   con.connect(function (err) {
+    // TODO check if there is an open connection and use it, open only if there is no connection
     if (err) {
-      throw err;
+      query();
+      // throw err;
     }
     console.log('Connected');
     query();
@@ -136,6 +138,16 @@ const getWeeksKeys = (weeks, dataRow) => {
   return allWeeksKeys;
 };
 
+const symbolsPromise = () => {
+  return new Promise((resolve, reject) => {
+    createConnection(() => {
+      con.query(`SELECT * FROM symbols`, function (err, result) {
+        resolve(result.map(symbol => symbol));
+      })
+    });
+  })
+};
+
 const symbolsObservable = from(new Promise((resolve, reject) => {
   createConnection(() => {
     con.query(`SELECT * FROM symbols`, function (err, result) {
@@ -159,16 +171,33 @@ const excelDataObservable = Observable.create((observer) => {
   });
 });
 
-const exelDataSub = excelDataObservable.subscribe((data) => {
-  data.forEach((row, idx) => {
-    // if (idx !== 0 && idx !== 1) {
-      console.log(getWeeksKeys(row, data[0]));
-    // }
-  })
-});
+// const excelDataSub = excelDataObservable.subscribe((data) => {
+//   data.forEach((row) => {
+//     console.log(getWeeksKeys(row, data[0]));
+//   })
+// });
 
 const symbolsSyb = symbolsObservable.subscribe((val) => {
   symbols = val;
+});
+
+const combined = excelDataObservable.pipe(mergeMap((excelData) => {
+  excelData.forEach((row, idx) => {
+    if (idx !== 0 && idx !== 1) {
+      console.log(getWeeksKeys(excelData[0], row));
+    }
+  });
+
+  return symbolsPromise().then((res) => {
+    return {
+      data: excelData,
+      symbols: res
+    }
+  })
+}));
+
+const subscribe = combined.subscribe((combinedVal) => {
+  // console.log(combinedVal);
 });
 
 // TODO use merge to connect the excel stream and the html stream
