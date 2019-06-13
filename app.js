@@ -2,8 +2,8 @@ const XLSX = require('xlsx');
 const request = require('request');
 const mysql = require('mysql');
 const moment = require('moment');
-const { Observable, from, merge } = require('rxjs');
-const { filter, reduce, concat, concatAll, mergeMap, map, switchAll } = require('rxjs/operators');
+const { Observable, from, merge, combineLatest } = require('rxjs');
+const { filter, reduce, concat, concatAll, mergeMap, map, switchAll, mergeAll, switchMap, mapTo } = require('rxjs/operators');
 const cheerio = require('cheerio');
 
 let symbols = {};
@@ -40,10 +40,10 @@ const htmlUrls = [
 
 const mysqlConnect = () => mysql.createConnection({
   host: "localhost",
-  port: "3309",
-  user: "cot",
-  password: "cot",
-  database: "cot"
+  // port: "3309",
+  user: "root",
+  password: "arakis",
+  database: "CoT"
 });
 
 const options = {
@@ -54,7 +54,7 @@ const options = {
 //week, symbol_id, open_interest, comm_netto, comm_long, comm_long_oi, comm_short, comm_short_oi, large_netto, large_long,
 // large_long_oi, large_short, large_short_oi, small_netto, small_long, small_long_oi, small_short, small_short_oi;
 
-
+// document.querySelectorAll("div.link")
 
 const requestData = url => {
   return Observable.create(observer => {
@@ -70,26 +70,121 @@ const requestData = url => {
   })
 };
 
-const getDate = $ => {
-  return moment($('p').text().replace('Stand: ', ''), 'DD-MM-YYYY').toDate();
-}
-
 const getRows = $ => {
-  const rows = $('tr.d').map(function(i, row) {
-    $(row).find('td').each((id, val) => console.log($(val).text()));
+  const out = [];
+  const rowKeys = [];
+  $('tr.head').find('td').each((idx, val) => {
+    rowKeys.push($(val).text());
   });
-  return from(rows);
-}
 
-requestData('https://cnt1.suricate-trading.de/cotde/history/cot-2019-04-30.html').pipe(
+  $('tr.d').each((i, node) => {
+    const row = {};
+    $(node).find('td').each((idx, val) => {
+      row[rowKeys[idx]] = $(val).text();
+    });
+    row.date = moment($('p').text().replace('Stand: ', ''), 'DD-MM-YYYY').toDate();
+    out.push(row);
+  });
+
+  return out;
+  return from(out);
+};
+
+const getUrls = $ => {
+  return from($('div.link a').map((i, link) => {
+    if (i <= 25) {
+      return `https://cnt1.suricate-trading.de/cotde/${link.attribs.href}`;
+    }
+  }));
+};
+
+requestData('https://cnt1.suricate-trading.de/cotde/cot-history.html').pipe(
   map(body => cheerio.load(body)),
-  // getDate($),
-  map(x => getRows(x)),
+  map(html => getUrls(html)),
+  switchAll(),
+  map(url => {
+    return requestData(url);
+  }),
+  mergeAll(),
+  map(tableBody => cheerio.load(tableBody)),
+  map($ => getRows($))
+).subscribe((data) => {
+  console.log(data);
+});
+
+const connect = () => {
+  return Observable.create((observer) => {
+    const connection = mysqlConnect();
+    connection.connect(err => {
+      if (err)
+        observer.error(err);
+      else {
+        observer.next(connection);
+      }
+    })
+  })
+};
+
+const query = (connection) => (query) => {
+  return Observable.create(observer => {
+    connection.query(query, (err, result) => {
+      if (err) {
+        observer.error(err);
+      } else {
+        result.map(dataPack => observer.next(dataPack))
+      }
+    });
+  });
+};
+
+const getSymbols = connection => query(connection)(`SELECT * FROM symbols`).pipe(
+  map(({ name, symbol_id }) => {
+    return { name, symbol_id };
+  })
+);
+
+connect().pipe(
+  map(connection => getSymbols(connection)),
   switchAll()
+).subscribe(symbol => symbol);
 
-).subscribe(data => console.log(data))
+const getFilteredRowDataKeys = (dataRow) => {
+  const symbolsNames = symbols.map((sym) => {
+    return sym.name;
+  });
 
-const requestDataProc = () => { 
+  return Object.keys(dataRow).filter((key) => {
+    return !symbolsNames.includes(dataRow[key]);
+  });
+};
+
+const getWeeksKeys = (weeks, dataRow) => {
+  const filteredRowDataKeys = getFilteredRowDataKeys(dataRow);
+  const totalWeeks = Object.keys(weeks).length;
+  const allWeeksKeys = {};
+  const getLengthOfRowByDate = () => filteredRowDataKeys.length / totalWeeks;
+  let weekKeys = [];
+  let weekIndex = 0;
+  let lengthOfQueryRow = getLengthOfRowByDate();
+
+  filteredRowDataKeys.forEach((key, index) => {
+    if (index <= lengthOfQueryRow) {
+      weekKeys.push(key);
+
+      if (index === lengthOfQueryRow - 1) {
+        allWeeksKeys[weeks[Object.keys(weeks)[weekIndex]]] = weekKeys;
+        weekKeys = [];
+        weekIndex++;
+        lengthOfQueryRow += getLengthOfRowByDate();
+      }
+    }
+  });
+
+  return allWeeksKeys;
+};
+
+const requestDataProc = () => {
+  return;
   request(htmlUrls[0], (err, res, body) => {
     const $ = cheerio.load(body);
     const rows = $('tr.d');
@@ -129,43 +224,8 @@ const requestDataProc = () => {
   })
 };
 
-const connect = () => {
-  return Observable.create((observer) => {
-    const connection = mysqlConnect();
-    connection.connect(err => {
-      if (err)
-        observer.error(err);
-      else {
-        observer.next(connection);
-      }
-    })
-  })
-}
-
-const query = (connection) => (query) => {
-  return Observable.create(observer => {
-    connection.query(query, (err, result) => {
-      if (err) {
-        observer.error(err);
-      } else {
-        result.map(dataPack => observer.next(dataPack))
-      }
-    });
-  });
-};
-
-const getSymbols = connection => query(connection)(`SELECT * FROM symbols`).pipe(
-  map(({ name, symbol_id }) => {
-    return { name, symbol_id };
-  })
-);
-
-connect().pipe(
-  map(connection => getSymbols(connection)),
-  switchAll()
-).subscribe(symbol => console.log(symbol));
-
 const createConnection = (query) => {
+  return;
   con.connect(function (err) {
     // TODO check if there is an open connection and use it, open only if there is no connection
     if (err) {
@@ -175,41 +235,6 @@ const createConnection = (query) => {
     console.log('Connected');
     query();
   });
-};
-
-const getFilteredRowDataKeys = (dataRow) => {
-  const symbolsNames = symbols.map((sym) => {
-    return sym.name;
-  });
-
-  return Object.keys(dataRow).filter((key) => {
-    return !symbolsNames.includes(dataRow[key]);
-  });
-};
-
-const getWeeksKeys = (weeks, dataRow) => {
-  const filteredRowDataKeys = getFilteredRowDataKeys(dataRow);
-  const totalWeeks = Object.keys(weeks).length;
-  const allWeeksKeys = {};
-  const getLengthOfRowByDate = () => filteredRowDataKeys.length / totalWeeks;
-  let weekKeys = [];
-  let weekIndex = 0;
-  let lengthOfQueryRow = getLengthOfRowByDate();
-
-  filteredRowDataKeys.forEach((key, index) => {
-    if (index <= lengthOfQueryRow) {
-      weekKeys.push(key);
-
-      if (index === lengthOfQueryRow - 1) {
-        allWeeksKeys[weeks[Object.keys(weeks)[weekIndex]]] = weekKeys;
-        weekKeys = [];
-        weekIndex++;
-        lengthOfQueryRow += getLengthOfRowByDate();
-      }
-    }
-  });
-
-  return allWeeksKeys;
 };
 
 function init() {
