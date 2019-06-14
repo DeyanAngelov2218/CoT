@@ -2,8 +2,8 @@ const XLSX = require('xlsx');
 const request = require('request');
 const mysql = require('mysql');
 const moment = require('moment');
-const { Observable, from, merge, combineLatest } = require('rxjs');
-const { filter, reduce, concat, concatAll, mergeMap, map, switchAll, mergeAll, switchMap, mapTo } = require('rxjs/operators');
+const { Observable, from, merge, combineLatest, of } = require('rxjs');
+const { filter, reduce, concat, concatAll, mergeMap, map, switchAll, mergeAll, switchMap, mapTo, share, tap, zip, combineAll } = require('rxjs/operators');
 const cheerio = require('cheerio');
 
 let symbols = {};
@@ -34,10 +34,6 @@ const excelFiles = [
   // }
 ];
 
-const htmlUrls = [
-  'https://cnt1.suricate-trading.de/cotde/history/cot-2019-04-30.html'
-];
-
 const mysqlConnect = () => mysql.createConnection({
   host: "localhost",
   // port: "3309",
@@ -50,11 +46,6 @@ const options = {
   method: 'GET',
   encoding: null
 };
-
-//week, symbol_id, open_interest, comm_netto, comm_long, comm_long_oi, comm_short, comm_short_oi, large_netto, large_long,
-// large_long_oi, large_short, large_short_oi, small_netto, small_long, small_long_oi, small_short, small_short_oi;
-
-// document.querySelectorAll("div.link")
 
 const requestData = url => {
   return Observable.create(observer => {
@@ -98,19 +89,26 @@ const getUrls = $ => {
   }));
 };
 
-requestData('https://cnt1.suricate-trading.de/cotde/cot-history.html').pipe(
-  map(body => cheerio.load(body)),
-  map(html => getUrls(html)),
-  switchAll(),
-  map(url => {
-    return requestData(url);
-  }),
-  mergeAll(),
-  map(tableBody => cheerio.load(tableBody)),
-  map($ => getRows($))
-).subscribe((data) => {
-  console.log(data);
-});
+const query = (connection) => (query) => {
+  return Observable.create(observer => {
+    connection.query(query, (err, result) => {
+      if (err) {
+        observer.error(err);
+      } else {
+        // observer.next(result);
+        result.map(dataPack => observer.next(dataPack))
+      }
+    });
+  });
+};
+
+const getSymbols = connection => query(connection)(`SELECT * FROM symbols`)
+  .pipe(
+    map(({ name, symbol_id }) => {
+      return of({ name, symbol_id });
+    }),
+    mergeAll()
+);
 
 const connect = () => {
   return Observable.create((observer) => {
@@ -125,27 +123,29 @@ const connect = () => {
   })
 };
 
-const query = (connection) => (query) => {
-  return Observable.create(observer => {
-    connection.query(query, (err, result) => {
-      if (err) {
-        observer.error(err);
-      } else {
-        result.map(dataPack => observer.next(dataPack))
-      }
-    });
-  });
-};
+const requestDataStream = requestData('https://cnt1.suricate-trading.de/cotde/cot-history.html').pipe(
+  map(body => cheerio.load(body)),
+  map(html => getUrls(html)),
+  switchAll(),
+  map(url => {
+    return requestData(url);
+  }),
+  mergeAll(),
+  map(tableBody => cheerio.load(tableBody)),
+  map($ => getRows($)),
+  share()
+)
+//   .subscribe((data) => {
+//   console.log(data);
+// });
 
-const getSymbols = connection => query(connection)(`SELECT * FROM symbols`).pipe(
-  map(({ name, symbol_id }) => {
-    return { name, symbol_id };
-  })
-);
-
-connect().pipe(
+const symbolsTableStream = connect().pipe(
   map(connection => getSymbols(connection)),
-  switchAll()
+  // switchAll(),
+  concatAll(),
+  tap((symbols) => {
+    console.log(symbols);
+  })
 ).subscribe(symbol => symbol);
 
 const getFilteredRowDataKeys = (dataRow) => {
@@ -183,194 +183,3 @@ const getWeeksKeys = (weeks, dataRow) => {
   return allWeeksKeys;
 };
 
-const requestDataProc = () => {
-  return;
-  request(htmlUrls[0], (err, res, body) => {
-    const $ = cheerio.load(body);
-    const rows = $('tr.d');
-    const date = moment($('p').text().replace('Stand: ', ''), 'DD-MM-YYYY').toDate();
-    const out = [];
-
-    rows.each(function(i, row) {
-      if (row.name === 'tr') {
-        const rowArr = [];
-        rowArr.push(date);
-        if (row.children) {
-          row.children.forEach((node, idx) => {
-            if (node.type === 'tag' && node.name === 'td') {
-              // TODO not the best way have to think of something else
-              if (idx === 1) {
-                const symbol = symbols.find((sym) => {
-                  return sym.name === $(node).text();
-                });
-
-                if (symbol && symbol.symbol_id) {
-                  rowArr.push(symbol.symbol_id);
-                } else {
-                  // TODO create the symbol in the DB and get its ID
-                }
-              } else {
-                // TODO remove unused chars from the string (%)
-                rowArr.push($(node).text())
-              }
-            }
-          });
-        }
-        out.push(rowArr);
-      }
-    });
-
-    // console.log(out);
-  })
-};
-
-const createConnection = (query) => {
-  return;
-  con.connect(function (err) {
-    // TODO check if there is an open connection and use it, open only if there is no connection
-    if (err) {
-      query();
-      // throw err;
-    }
-    console.log('Connected');
-    query();
-  });
-};
-
-function init() {
-  return;
-  const symbolsPromise = () => {
-    return new Promise((resolve, reject) => {
-      createConnection(() => {
-        con.query(`SELECT * FROM symbols`, function (err, result) {
-          resolve(result.map(symbol => symbol));
-        })
-      });
-    })
-  };
-
-  const symbolsObservable = from(new Promise((resolve, reject) => {
-    createConnection(() => {
-      con.query(`SELECT * FROM symbols`, function (err, result) {
-        resolve(result.map(symbol => symbol));
-      })
-    });
-  }));
-
-  const excelDataObservable = Observable.create((observer) => {
-    excelFiles.forEach( (fileInfo) => {
-      request({...options, url: fileInfo.url}, (err, res, body) => {
-        const workbook = XLSX.read(body, {type: 'buffer'});
-
-        workbook.SheetNames.forEach((workSheetName, index) => {
-          const sheetName = workbook.SheetNames[index];
-          const workSheet = workbook.Sheets[sheetName];
-          const excelData = (XLSX.utils.sheet_to_json(workSheet, {header: "A", blankrows: false}));
-          observer.next(excelData);
-        });
-      })
-    });
-  });
-  // const excelDataSub = excelDataObservable.subscribe((data) => {
-  //   data.forEach((row) => {
-  //     console.log(getWeeksKeys(row, data[0]));
-  //   })
-  // });
-
-  const symbolsSyb = symbolsObservable.subscribe((val) => {
-    symbols = val;
-  });
-  const combined = excelDataObservable.pipe(mergeMap((excelData) => {
-    excelData.forEach((row, idx) => {
-      if (idx !== 0 && idx !== 1) {
-        console.log(getWeeksKeys(excelData[0], row));
-      }
-    });
-  
-    return symbolsPromise().then((res) => {
-      return {
-        data: excelData,
-        symbols: res
-      }
-    })
-  }));
-  
-  const subscribe = combined.subscribe((combinedVal) => {
-    // console.log(combinedVal);
-  });
-}
-
-// TODO use merge to connect the excel stream and the html stream
-
-// con.connect(function (err) {
-//   if (err) {
-//     throw err;
-//   }
-//   console.log('Connected');
-//
-//   excelFiles.forEach((fileInfo) => {
-//     request({...options, url: fileInfo.url}, (err, res, body) => {
-//       const workbook = XLSX.read(body, {type: 'buffer'});
-//
-//       workbook.SheetNames.forEach((workSheetName, index) => {
-//         const sheetName = workbook.SheetNames[index];
-//         const workSheet = workbook.Sheets[sheetName];
-//         const excelData = (XLSX.utils.sheet_to_json(workSheet, {header: "A", blankrows: false}));
-//         const weeks = excelData[0];
-//
-//         excelData.forEach(async (row, index) => {
-//           if (index !== 0 && index !== 1) {
-//             // TODO make this an observable in order to get filteredRowDataKeys
-//             await con.query(`SELECT * FROM symbols where name = "${row['A']}"`, function(err, result) {
-//               // TODO if the symbol does not exists create it
-//               if (err) {
-//                 throw err;
-//               }
-//               const { symbol_id } = result[0];
-//               const filteredRowDataKeys = Object.keys(row).filter((key) => {
-//                 return result[0].name !== row[key];
-//               });
-//               let out = [];
-//               const weeksKeys = getWeeksKeys(filteredRowDataKeys, weeks);
-//               Object.keys(weeksKeys).forEach(async(week, idx) => {
-//                 out.push([
-//                   moment(week.replace('Stand: ', ''), 'DD-MM-YYYY').toDate(),
-//                   symbol_id,
-//                   row[weeksKeys[week][0]],
-//                   row[weeksKeys[week][1]],
-//                   row[weeksKeys[week][2]],
-//                   row[weeksKeys[week][3]],
-//                   row[weeksKeys[week][4]],
-//                   row[weeksKeys[week][5]],
-//                   row[weeksKeys[week][6]],
-//                   row[weeksKeys[week][7]],
-//                   row[weeksKeys[week][8]],
-//                   row[weeksKeys[week][9]],
-//                   row[weeksKeys[week][10]],
-//                   row[weeksKeys[week][11]],
-//                   row[weeksKeys[week][12]],
-//                   row[weeksKeys[week][13]],
-//                   row[weeksKeys[week][14]],
-//                   row[weeksKeys[week][15]]
-//                 ]);
-//
-//                 if (!(idx % 3) && idx) {
-//                   // console.log(index);
-//                   const sql = "INSERT INTO symbols_data (week, symbol_id, open_interest, comm_netto, comm_long, comm_long_oi, comm_short, comm_short_oi, large_netto, large_long, large_long_oi, large_short, large_short_oi, small_netto, small_long, small_long_oi, small_short, small_short_oi) VALUES ?";
-//                   con.query(sql, [out], await function (err) {
-//                     if (err) {
-//                       throw err;
-//                     }
-//
-//                     out = [];
-//                   });
-//                 }
-//               });
-//             });
-//           }
-//         });
-//
-//       });
-//     });
-//   });
-// });

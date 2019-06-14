@@ -16,12 +16,12 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/app.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="85">
-              <caret line="70" column="2" selection-start-line="70" selection-start-column="2" selection-end-line="70" selection-end-column="2" />
+            <state relative-caret-position="347">
+              <caret line="146" column="4" selection-start-line="146" selection-start-column="4" selection-end-line="146" selection-end-column="4" />
               <folding>
-                <element signature="e#531#535#0" />
-                <element signature="e#4701#5884#0" />
-                <element signature="e#5923#6169#0" />
+                <element signature="e#581#585#0" />
+                <element signature="e#4300#4480#0" />
+                <element signature="e#4524#5202#0" />
               </folding>
             </state>
           </provider>
@@ -48,17 +48,11 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>weeks</find>
-      <find>getSymbols</find>
-      <find>‌RowDataPacket</find>
-      <find>awa</find>
-      <find>operator</find>
       <find>operators</find>
       <find>frompro</find>
       <find>fromP</find>
       <find>fromPro</find>
       <find>filter</find>
-      <find>from</find>
       <find>filteredRowDataKeys</find>
       <find>{ from</find>
       <find>.next</find>
@@ -67,7 +61,6 @@
       <find>concat</find>
       <find>new pro</find>
       <find>symbolsObservable</find>
-      <find>getFilteredRowDataKeys</find>
       <find>getWeeksKeys</find>
       <find>console</find>
       <find>requestData(</find>
@@ -76,8 +69,15 @@
       <find>subscri</find>
       <find>console.log</find>
       <find>requestData</find>
-      <find>mergeAll</find>
       <find>pipeTableBody</find>
+      <find>connect(</find>
+      <find>todo</find>
+      <find>mysqlConnect</find>
+      <find>getFilteredRowDataKeys</find>
+      <find>zip</find>
+      <find>getSymbols</find>
+      <find>mergeAll</find>
+      <find>from</find>
     </findStrings>
     <replaceStrings>
       <replace>\n</replace>
@@ -173,18 +173,18 @@
       <workItem from="1559500339505" duration="13703000" />
       <workItem from="1559746646129" duration="7805000" />
       <workItem from="1559838201743" duration="64736000" />
-      <workItem from="1560351825784" duration="21009000" />
+      <workItem from="1560351825784" duration="30907000" />
+      <workItem from="1560488563352" duration="10521000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="203792000" />
+    <option name="totallyTimeSpent" value="224211000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
-    <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.1119403" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.1130064" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -203,11 +203,23 @@
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
       <window_info anchor="right" id="Database" order="3" />
-      <window_info anchor="right" id="Run" order="4" sideWeight="0.49946696" visible="true" weight="0.36247334" />
+      <window_info anchor="right" id="Run" order="4" sideWeight="0.49946696" visible="true" weight="0.25799572" />
     </layout>
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="1" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/app.js</url>
+          <line>146</line>
+          <properties lambdaOrdinal="-1" />
+          <option name="timeStamp" value="7" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
   <component name="debuggerHistoryManager">
     <expressions id="watch">
@@ -340,13 +352,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/package.json">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="136">
-          <caret line="8" column="23" selection-start-line="8" selection-start-column="23" selection-end-line="8" selection-end-column="23" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/node_modules/rxjs/src/internal/operators/mergeMap.ts">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="201">
@@ -370,13 +375,20 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/app.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="85">
-          <caret line="70" column="2" selection-start-line="70" selection-start-column="2" selection-end-line="70" selection-end-column="2" />
+        <state relative-caret-position="347">
+          <caret line="146" column="4" selection-start-line="146" selection-start-column="4" selection-end-line="146" selection-end-column="4" />
           <folding>
-            <element signature="e#531#535#0" />
-            <element signature="e#4701#5884#0" />
-            <element signature="e#5923#6169#0" />
+            <element signature="e#581#585#0" />
+            <element signature="e#4300#4480#0" />
+            <element signature="e#4524#5202#0" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/package.json">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="136">
+          <caret line="8" column="23" selection-start-line="8" selection-start-column="23" selection-end-line="8" selection-end-column="23" />
         </state>
       </provider>
     </entry>
