@@ -8,63 +8,58 @@ const cheerio = require('cheerio');
 
 class Repository {
   constructor() {
-    const that = this;
     this.connection = null;
-    this.symbols = [];
-    this.getSymbols$().pipe(
-      scan((acc, symbol) => [symbol, ...acc], [])
-    )
-    .subscribe(symbols => {
-      that.symbols = symbols;
-    });
+    this.symbols$ = null;
+    // this.connect$().subscribe((connection) => {
+    //   this.connection = connection
+    // });
+    
   }
   query$(query) {
     return this.connect$().pipe(
       switchMap(connection => {
-        return Observable.create(observer => {
-          connection.query(query, (err, result) => {
-            if (err) {
-              observer.error(err);
+        const subject = new Subject();
+        connection.query(query, (err, result) => {
+          if (err) {
+            subject.error(err);
+          } else {
+            // observer.next(result);
+            if (result.insertId) {
+              subject.next(result.insertId);
+            } else if (result.map) {
+              result.map(dataPack => subject.next(dataPack))
             } else {
-              if (result.insertId) {
-                observer.next(result.insertId);
-              } else if (result.map) {
-                result.map(dataPack => observer.next(dataPack))
-              } else {
-                observer,next(result);
-              }
+              subject,next(result);
             }
-            observer.complete();
-          });
+          }
+          // subject.complete();
         });
+        return subject;
       })
     )
   };
   
   getSymbols$() {
-    return this.query$(`SELECT * FROM symbols`)
-    .pipe(
-      map(({ name, symbol_id }) => {
-        return { name, symbol_id }
-      })
-    );
-  };
-  
-  addSymbolId$(row) {
-    const that = this;
-    const foundSymbol = that.symbols.find(v => v.name === row.Name);
-    if (!!foundSymbol) {
-      const { symbol_id } = foundSymbol;
-      return of({ symbol_id, ...row });
-    } else {
-      return this.query$(`INSERT INTO symbols (name) VALUES ("${row.Name}")`).pipe(
-        map(symbol_id => {
-          const symbol = { name: row.Name, symbol_id };
-          that.symbols.push(symbol);
-          return { symbol_id, ...row };
+    if (this.symbols$ === null) {
+      this.symbols$ = this.query$(`SELECT * FROM symbols`)
+      .pipe(
+        map(({ name, symbol_id }) => {
+          return { name, symbol_id }
         })
       );
     }
+    return this.symbols$;
+  };
+  
+  insertSymbol$(row) {
+    const that = this;
+    return this.query$(`INSERT INTO symbols (name) VALUES ("${row.Name}")`).pipe(
+      flatMap(symbol_id => {
+        const symbol = { name: row.Name, symbol_id };
+        that.getSymbols$.next(symbol);
+        return { symbol_id, ...row };
+      })
+    );
   };
   
   connect$() {
@@ -184,38 +179,35 @@ const requestDataStream$ = requestData$('https://cnt1.suricate-trading.de/cotde/
   mergeAll(),
   map(tableBody => cheerio.load(tableBody)),
   flatMap($ => getRows$($)),
-  flatMap(row => r.addSymbolId$(row))
   
-).subscribe(d => {
-  console.log(d)
-});
+);
 
-// const  symbolsTableStream$ = r.getSymbols$().pipe(
-//   scan((acc, value) => { 
-//     return [...acc, value];
-//   }, [])
-// );
+const  symbolsTableStream$ = r.getSymbols$().pipe(
+  scan((acc, value) => { 
+    return [...acc, value];
+  }, [])
+);
 
-// const allRows$ = combineLatest(symbolsTableStream$, requestDataStream$).pipe(
-//   map(([symbols, row]) => {
-//     return {
-//       isFound: !!symbols.find(v => v.name === row.Name),
-//       ...row
-//     };
-//   })
-// )
+const allRows$ = combineLatest(symbolsTableStream$, requestDataStream$).pipe(
+  map(([symbols, row]) => {
+    return {
+      isFound: !!symbols.find(v => v.name === row.Name),
+      ...row
+    };
+  })
+)
 
 // const foundRows$ = allRows$.pipe(
 //   filter(row => row.isFound)
 // );
 
-// const notFoundRows$ = allRows$.pipe(
-//   filter(row => !row.isFound),
-//   flatMap(row => {
-//     return r.insertSymbol$(row)
-//   })
-// )
-// .subscribe(a => console.log(a));;
+const notFoundRows$ = allRows$.pipe(
+  filter(row => !row.isFound),
+  flatMap(row => {
+    return r.insertSymbol$(row)
+  })
+)
+.subscribe(a => console.log(a));;
 
 
 const getFilteredRowDataKeys = (dataRow) => {
