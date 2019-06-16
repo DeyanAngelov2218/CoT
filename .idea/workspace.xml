@@ -16,22 +16,18 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/app.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="347">
-              <caret line="146" column="4" selection-start-line="146" selection-start-column="4" selection-end-line="146" selection-end-column="4" />
+            <state relative-caret-position="833">
+              <caret line="196" column="7" lean-forward="true" selection-start-line="196" selection-start-column="7" selection-end-line="196" selection-end-column="7" />
               <folding>
-                <element signature="e#581#585#0" />
+                <element signature="e#2764#3907#0" />
+                <element signature="e#3926#3963#0" />
+                <element signature="e#5303#5356#0" />
+                <element signature="e#5436#5516#0" />
+                <element signature="e#5664#5700#0" />
+                <element signature="e#5740#5779#0" />
                 <element signature="e#4300#4480#0" />
                 <element signature="e#4524#5202#0" />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/package.json">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="136">
-              <caret line="8" column="23" selection-start-line="8" selection-start-column="23" selection-end-line="8" selection-end-column="23" />
             </state>
           </provider>
         </entry>
@@ -48,36 +44,36 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>operators</find>
-      <find>frompro</find>
-      <find>fromP</find>
-      <find>fromPro</find>
-      <find>filter</find>
-      <find>filteredRowDataKeys</find>
-      <find>{ from</find>
-      <find>.next</find>
-      <find>excelDataObservable</find>
-      <find>new</find>
-      <find>concat</find>
-      <find>new pro</find>
-      <find>symbolsObservable</find>
-      <find>getWeeksKeys</find>
-      <find>console</find>
-      <find>requestData(</find>
-      <find>Observable.create</find>
-      <find>bservable.creat</find>
-      <find>subscri</find>
-      <find>console.log</find>
-      <find>requestData</find>
-      <find>pipeTableBody</find>
-      <find>connect(</find>
-      <find>todo</find>
-      <find>mysqlConnect</find>
-      <find>getFilteredRowDataKeys</find>
-      <find>zip</find>
       <find>getSymbols</find>
       <find>mergeAll</find>
       <find>from</find>
+      <find>requestDataStream</find>
+      <find>requestDataStream$</find>
+      <find>getFilteredRowDataKeys</find>
+      <find>getUrls</find>
+      <find>Repository</find>
+      <find>OpenInterest</find>
+      <find>insertSymbolRowInDb$</find>
+      <find>bufferCount</find>
+      <find>here</find>
+      <find>log</find>
+      <find>values</find>
+      <find>values'</find>
+      <find>][</find>
+      <find>330</find>
+      <find>slice</find>
+      <find>connect$</find>
+      <find>values)</find>
+      <find>this.connection</find>
+      <find>.connection</find>
+      <find>symbols =</find>
+      <find>query$(</find>
+      <find>getSymbols$</find>
+      <find>this.symbols</find>
+      <find>that.sym</find>
+      <find>query$</find>
+      <find>deb</find>
+      <find>row</find>
     </findStrings>
     <replaceStrings>
       <replace>\n</replace>
@@ -174,27 +170,28 @@
       <workItem from="1559746646129" duration="7805000" />
       <workItem from="1559838201743" duration="64736000" />
       <workItem from="1560351825784" duration="30907000" />
-      <workItem from="1560488563352" duration="10521000" />
+      <workItem from="1560488563352" duration="37835000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="224211000" />
+    <option name="totallyTimeSpent" value="251525000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
+    <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.1130064" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info active="true" anchor="bottom" x="1920" y="0" width="975" height="1042" id="Debug" order="2" visible="true" weight="0.28060672" />
+      <window_info anchor="bottom" x="1920" y="0" width="975" height="1042" id="Debug" order="2" visible="true" weight="0.28060672" />
       <window_info anchor="bottom" id="Cvs" order="3" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="4" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="5" />
       <window_info anchor="bottom" id="Docker" order="6" show_stripe_button="false" />
-      <window_info anchor="bottom" id="Version Control" order="7" />
+      <window_info anchor="bottom" id="Version Control" order="7" weight="0.32936078" />
       <window_info anchor="bottom" id="Database Changes" order="8" />
       <window_info anchor="bottom" id="TypeScript" order="9" />
       <window_info anchor="bottom" id="Terminal" order="10" weight="0.32936078" />
@@ -203,23 +200,21 @@
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
       <window_info anchor="right" id="Database" order="3" />
-      <window_info anchor="right" id="Run" order="4" sideWeight="0.49946696" visible="true" weight="0.25799572" />
+      <window_info active="true" anchor="right" id="Run" order="4" sideWeight="0.49946696" visible="true" weight="0.87100214" />
     </layout>
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="1" />
   </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="javascript">
-          <url>file://$PROJECT_DIR$/app.js</url>
-          <line>146</line>
-          <properties lambdaOrdinal="-1" />
-          <option name="timeStamp" value="7" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
+  <component name="Vcs.Log.History.Properties">
+    <option name="COLUMN_ORDER">
+      <list>
+        <option value="0" />
+        <option value="2" />
+        <option value="3" />
+        <option value="1" />
+      </list>
+    </option>
   </component>
   <component name="debuggerHistoryManager">
     <expressions id="watch">
@@ -373,22 +368,34 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/app.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="347">
-          <caret line="146" column="4" selection-start-line="146" selection-start-column="4" selection-end-line="146" selection-end-column="4" />
-          <folding>
-            <element signature="e#581#585#0" />
-            <element signature="e#4300#4480#0" />
-            <element signature="e#4524#5202#0" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/package.json">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="136">
           <caret line="8" column="23" selection-start-line="8" selection-start-column="23" selection-end-line="8" selection-end-column="23" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/app_filtered_observables.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-1054">
+          <caret line="13" column="37" lean-forward="true" selection-start-line="13" selection-start-column="37" selection-end-line="13" selection-end-column="37" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/app.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="833">
+          <caret line="196" column="7" lean-forward="true" selection-start-line="196" selection-start-column="7" selection-end-line="196" selection-end-column="7" />
+          <folding>
+            <element signature="e#2764#3907#0" />
+            <element signature="e#3926#3963#0" />
+            <element signature="e#5303#5356#0" />
+            <element signature="e#5436#5516#0" />
+            <element signature="e#5664#5700#0" />
+            <element signature="e#5740#5779#0" />
+            <element signature="e#4300#4480#0" />
+            <element signature="e#4524#5202#0" />
+          </folding>
         </state>
       </provider>
     </entry>

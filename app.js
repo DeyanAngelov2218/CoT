@@ -3,7 +3,8 @@ const request = require('request');
 const mysql = require('mysql');
 const moment = require('moment');
 const { Observable, Subject, from, merge, combineLatest, of } = require('rxjs');
-const { groupBy, take, concatMap, toArray, scan, filter, reduce, concat, flatMap, concatAll, mergeMap, map, switchAll, mergeAll, switchMap, mapTo, share, tap, zip, combineAll } = require('rxjs/operators');
+const { groupBy, take, concatMap, toArray, scan, filter, reduce, concat, flatMap, concatAll, mergeMap, map,
+  switchAll, mergeAll, switchMap, mapTo, share, tap, zip, combineAll, bufferCount } = require('rxjs/operators');
 const cheerio = require('cheerio');
 
 class Repository {
@@ -17,13 +18,37 @@ class Repository {
     .subscribe(symbols => {
       that.symbols = symbols;
     });
+
+    this.insertQueryDictionary = {
+      date: 'week',
+      symbol_id: 'symbol_id',
+      OpenInterest: 'open_interest',
+      CommNetto: 'comm_netto',
+      CommLong: 'comm_long',
+      'CommLong/OI': 'comm_long_oi',
+      CommShort: 'comm_short',
+      'CommShort/OI': 'comm_short_oi',
+      LargeNetto: 'large_netto',
+      LargeLong: 'large_long',
+      'LargeLong/OI': 'large_long_oi',
+      LargeShort: 'large_short',
+      'LargeShort/OI': 'large_short_oi',
+      SmallNetto: 'small_netto',
+      SmallLong: 'small_long',
+      'SmallLong/OI': 'small_long_oi',
+      SmallShort: 'small_short',
+      'SmallShort/OI': 'small_short_oi'
+    };
   }
-  query$(query) {
-    return this.connect$().pipe(
+
+  query$(query, values) {
+    return this.connect$(values).pipe(
       switchMap(connection => {
+        console.log(connection);
         return Observable.create(observer => {
-          connection.query(query, (err, result) => {
+          connection.query(query, values, (err, result) => {
             if (err) {
+              console.log(err);
               observer.error(err);
             } else {
               if (result.insertId) {
@@ -66,6 +91,35 @@ class Repository {
       );
     }
   };
+
+  adaptRowForDbInsert$(row) {
+    const out = [];
+    Object.keys(this.insertQueryDictionary).forEach((key) => {
+      if (row[key]) {
+        out.push(row[key]);
+      }
+    });
+
+    return out;
+  }
+
+  insertSymbolRowInDb$(rows) {
+    const query = "INSERT INTO symbols_data (week, symbol_id, open_interest, comm_netto, comm_long, comm_long_oi, comm_short, comm_short_oi, large_netto, large_long, large_long_oi, large_short, large_short_oi, small_netto, small_long, small_long_oi, small_short, small_short_oi) VALUES ?"
+    this.connection.query(query, [rows], (err, res) => {
+      if (err) {
+        console.log(rows);
+        console.log(err);
+      }
+
+      console.log(res);
+    });
+    // return this.query$(query, rows).pipe(
+    //   map((a, b, c) => {
+    //   console.log(a);
+    //   console.log(b);
+    //   console.log(c);
+    // }));
+  }
   
   connect$() {
     return Observable.create((observer) => {
@@ -75,9 +129,10 @@ class Repository {
         const connection = this.mysqlConnect();
         const that = this;
         connection.connect(err => {
-          if (err)
+          if (err) {
+            console.log(err);
             observer.error(err);
-          else {
+          } else {
             observer.next(connection);
             that.connection = connection;
           }
@@ -90,43 +145,41 @@ class Repository {
   mysqlConnect() {
     return mysql.createConnection({
       host: "localhost",
-      port: "3309",
-      user: "cot",
-      password: "cot",
-      database: "cot"
+      // port: "3309",
+      user: "root",
+      password: "arakis",
+      database: "CoT"
     });
   }
 }
 
-let symbols = {};
 const r = new Repository();
 const excelFiles = [
   {
     name: 'CoT_Daten_2019.xlsx',
     url: 'https://s1ee9bc4c878f2f5f.jimcontent.com/download/version/1556307196/module/7553454581/name/CoT%20Daten%202019.xlsx'
   },
-  // {
-  //   name: 'CoT_Daten_2010-2017.xlsx',
-  //   url: 'https://s1ee9bc4c878f2f5f.jimcontent.com/download/version/1529697217/module/7339046781/name/CoT%20Daten%202010%20-%202017.xlsx'
-  // },
-  // {
-  //   name: 'CoT_Daten_1990-1999.xlsx',
-  //   url: 'https://s1ee9bc4c878f2f5f.jimcontent.com/download/version/1529697250/module/7339047381/name/CoT%20Daten%201990%20-%201999.xlsx'
-  // },
-  // {
-  //   name: 'CoT_Daten_2018.xlsx',
-  //   url: 'https://s1ee9bc4c878f2f5f.jimcontent.com/download/version/1550004467/module/7553454681/name/CoT%20Daten%202018%20.xlsx'
-  // },
-  // {
-  //   name: 'CoT_Daten_2000-2009.xlsx',
-  //   url: 'https://s1ee9bc4c878f2f5f.jimcontent.com/download/version/1529697228/module/7339046881/name/CoT%20Daten%202000%20-%202009.xlsx'
-  // },
-  // {
-  //   name: 'CoT_Daten_1986-1989.xlsx',
-  //   url: 'https://s1ee9bc4c878f2f5f.jimcontent.com/download/version/1529697265/module/7339047581/name/CoT%20Daten%201986%20-%201989.xlsx'
-  // }
+  {
+    name: 'CoT_Daten_2010-2017.xlsx',
+    url: 'https://s1ee9bc4c878f2f5f.jimcontent.com/download/version/1529697217/module/7339046781/name/CoT%20Daten%202010%20-%202017.xlsx'
+  },
+  {
+    name: 'CoT_Daten_1990-1999.xlsx',
+    url: 'https://s1ee9bc4c878f2f5f.jimcontent.com/download/version/1529697250/module/7339047381/name/CoT%20Daten%201990%20-%201999.xlsx'
+  },
+  {
+    name: 'CoT_Daten_2018.xlsx',
+    url: 'https://s1ee9bc4c878f2f5f.jimcontent.com/download/version/1550004467/module/7553454681/name/CoT%20Daten%202018%20.xlsx'
+  },
+  {
+    name: 'CoT_Daten_2000-2009.xlsx',
+    url: 'https://s1ee9bc4c878f2f5f.jimcontent.com/download/version/1529697228/module/7339046881/name/CoT%20Daten%202000%20-%202009.xlsx'
+  },
+  {
+    name: 'CoT_Daten_1986-1989.xlsx',
+    url: 'https://s1ee9bc4c878f2f5f.jimcontent.com/download/version/1529697265/module/7339047581/name/CoT%20Daten%201986%20-%201989.xlsx'
+  }
 ];
-
 const options = {
   method: 'GET',
   encoding: null
@@ -156,7 +209,7 @@ const getRows$ = $ => {
   $('tr.d').each((i, node) => {
     const row = {};
     $(node).find('td').each((idx, val) => {
-      row[rowKeys[idx]] = $(val).text();
+      row[rowKeys[idx]] = $(val).text().trim().replace(/[^\d.,-]/g, '');
     });
     row.date = moment($('p').text().replace('Stand: ', ''), 'DD-MM-YYYY').toDate();
     out.push(row);
@@ -184,10 +237,13 @@ const requestDataStream$ = requestData$('https://cnt1.suricate-trading.de/cotde/
   mergeAll(),
   map(tableBody => cheerio.load(tableBody)),
   flatMap($ => getRows$($)),
-  flatMap(row => r.addSymbolId$(row))
+  flatMap(row => r.addSymbolId$(row)),
+  map(row => r.adaptRowForDbInsert$(row)),
+  bufferCount(5),
+  map(rows => r.insertSymbolRowInDb$(rows))
   
 ).subscribe(d => {
-  console.log(d)
+  console.log(d, ' here');
 });
 
 // const  symbolsTableStream$ = r.getSymbols$().pipe(
