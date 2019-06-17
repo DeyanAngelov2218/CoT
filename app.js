@@ -194,6 +194,7 @@ const requestData$ = url => {
       } else {
         observer.next(body);
       }
+      observer.complete();
     })
   })
 };
@@ -227,7 +228,7 @@ const getRows$ = $ => {
 
 const getUrls = $ => {
   return from($('div.link a')
-  .slice(0,25)
+  .slice(0,26)
   .map((index, link) => {
     return `https://cnt1.suricate-trading.de/cotde/${link.attribs.href}`
   }));
@@ -247,6 +248,7 @@ const requestDataStream$ = requestData$('https://cnt1.suricate-trading.de/cotde/
   // tap(row => console.log(row)),
   map(row => r.adaptRowForDbInsert$(row)),
   bufferCount(50),
+  tap(data => console.log(data.length)),
   flatMap(rows => r.insertSymbolRowInDb$(rows))
   
 ).subscribe(d => {
