@@ -3,7 +3,7 @@ const request = require('request');
 const mysql = require('mysql');
 const moment = require('moment');
 const { Observable, Subject, from, merge, combineLatest, of } = require('rxjs');
-const { groupBy, take, concatMap, toArray, scan, filter, reduce, concat, flatMap, concatAll, mergeMap, map,
+const { exhaustMap, groupBy, take, concatMap, toArray, scan, filter, reduce, concat, flatMap, concatAll, mergeMap, map,
   switchAll, mergeAll, switchMap, mapTo, share, tap, zip, combineAll, bufferCount } = require('rxjs/operators');
 const cheerio = require('cheerio');
 
@@ -42,11 +42,11 @@ class Repository {
   }
 
   query$(query, values) {
-    return this.connect$(values).pipe(
-      switchMap(connection => {
-        console.log(connection);
+    return this.connect$().pipe(
+      exhaustMap(connection => {
         return Observable.create(observer => {
-          connection.query(query, values, (err, result) => {
+          console.log(query, values);
+          connection.query(query, [values], (err, result) => {
             if (err) {
               console.log(err);
               observer.error(err);
@@ -60,8 +60,10 @@ class Repository {
               }
             }
             observer.complete();
-          });
-        });
+          })
+        }).pipe(
+          tap(data => data)
+        );
       })
     )
   };
@@ -79,16 +81,28 @@ class Repository {
     const that = this;
     const foundSymbol = that.symbols.find(v => v.name === row.Name);
     if (!!foundSymbol) {
-      const { symbol_id } = foundSymbol;
-      return of({ symbol_id, ...row });
+      if (foundSymbol.observer) {
+        return foundSymbol.observer.pipe(switchAll());
+      } else {
+        const { symbol_id } = foundSymbol;
+        return of({ symbol_id, ...row });
+      }
     } else {
-      return this.query$(`INSERT INTO symbols (name) VALUES ("${row.Name}")`).pipe(
+      const observer = this.query$(`INSERT INTO symbols (name) VALUES ("${row.Name}")`).pipe(
         map(symbol_id => {
+          const foundSymbolIndex = that.symbols.findIndex(v => v.name === row.Name);
           const symbol = { name: row.Name, symbol_id };
-          that.symbols.push(symbol);
+          if (foundSymbolIndex > -1) {
+            that.symbols[foundSymbolIndex] = symbol;
+          } else {
+            that.symbols.push(symbol);
+          }
           return { symbol_id, ...row };
         })
       );
+      const symbol = { name: row.Name, symbol_id: null, observer };
+      that.symbols.push(symbol);
+      return observer;
     }
   };
 
@@ -105,14 +119,15 @@ class Repository {
 
   insertSymbolRowInDb$(rows) {
     const query = "INSERT INTO symbols_data (week, symbol_id, open_interest, comm_netto, comm_long, comm_long_oi, comm_short, comm_short_oi, large_netto, large_long, large_long_oi, large_short, large_short_oi, small_netto, small_long, small_long_oi, small_short, small_short_oi) VALUES ?"
-    this.connection.query(query, [rows], (err, res) => {
-      if (err) {
-        console.log(rows);
-        console.log(err);
-      }
+    // this.connection.query(query, [rows], (err, res) => {
+    //   if (err) {
+    //     console.log(rows);
+    //     console.log(err);
+    //   }
 
-      console.log(res);
-    });
+    //   console.log(res);
+  // });
+    return this.query$(query, rows);
     // return this.query$(query, rows).pipe(
     //   map((a, b, c) => {
     //   console.log(a);
@@ -145,10 +160,10 @@ class Repository {
   mysqlConnect() {
     return mysql.createConnection({
       host: "localhost",
-      // port: "3309",
-      user: "root",
-      password: "arakis",
-      database: "CoT"
+      port: "3309",
+      user: "cot",
+      password: "cot",
+      database: "cot"
     });
   }
 }
@@ -209,7 +224,14 @@ const getRows$ = $ => {
   $('tr.d').each((i, node) => {
     const row = {};
     $(node).find('td').each((idx, val) => {
-      row[rowKeys[idx]] = $(val).text().trim().replace(/[^\d.,-]/g, '');
+      let value =  $(val).text().trim();
+      if (rowKeys[idx] !== 'Name') {
+        value = value.replace(/[^\d.,-]/g, '').replace(",", '.');
+        if(value === '-'){
+          value = "0";
+        }
+      }
+      row[rowKeys[idx]] = value;
     });
     row.date = moment($('p').text().replace('Stand: ', ''), 'DD-MM-YYYY').toDate();
     out.push(row);
@@ -240,7 +262,7 @@ const requestDataStream$ = requestData$('https://cnt1.suricate-trading.de/cotde/
   flatMap(row => r.addSymbolId$(row)),
   map(row => r.adaptRowForDbInsert$(row)),
   bufferCount(5),
-  map(rows => r.insertSymbolRowInDb$(rows))
+  flatMap(rows => r.insertSymbolRowInDb$(rows))
   
 ).subscribe(d => {
   console.log(d, ' here');
