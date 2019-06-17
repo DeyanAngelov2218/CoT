@@ -43,9 +43,8 @@ class Repository {
 
   query$(query, values) {
     return this.connect$().pipe(
-      exhaustMap(connection => {
+      switchMap(connection => {
         return Observable.create(observer => {
-          console.log(query, values);
           connection.query(query, [values], (err, result) => {
             if (err) {
               console.log(err);
@@ -61,10 +60,9 @@ class Repository {
             }
             observer.complete();
           })
-        }).pipe(
-          tap(data => data)
-        );
-      })
+        })
+      }),
+      share()
     )
   };
   
@@ -82,7 +80,7 @@ class Repository {
     const foundSymbol = that.symbols.find(v => v.name === row.Name);
     if (!!foundSymbol) {
       if (foundSymbol.observer) {
-        return foundSymbol.observer.pipe(switchAll());
+        return foundSymbol.observer;
       } else {
         const { symbol_id } = foundSymbol;
         return of({ symbol_id, ...row });
@@ -119,21 +117,7 @@ class Repository {
 
   insertSymbolRowInDb$(rows) {
     const query = "INSERT INTO symbols_data (week, symbol_id, open_interest, comm_netto, comm_long, comm_long_oi, comm_short, comm_short_oi, large_netto, large_long, large_long_oi, large_short, large_short_oi, small_netto, small_long, small_long_oi, small_short, small_short_oi) VALUES ?"
-    // this.connection.query(query, [rows], (err, res) => {
-    //   if (err) {
-    //     console.log(rows);
-    //     console.log(err);
-    //   }
-
-    //   console.log(res);
-  // });
     return this.query$(query, rows);
-    // return this.query$(query, rows).pipe(
-    //   map((a, b, c) => {
-    //   console.log(a);
-    //   console.log(b);
-    //   console.log(c);
-    // }));
   }
   
   connect$() {
@@ -260,12 +244,13 @@ const requestDataStream$ = requestData$('https://cnt1.suricate-trading.de/cotde/
   map(tableBody => cheerio.load(tableBody)),
   flatMap($ => getRows$($)),
   flatMap(row => r.addSymbolId$(row)),
+  // tap(row => console.log(row)),
   map(row => r.adaptRowForDbInsert$(row)),
-  bufferCount(5),
+  bufferCount(50),
   flatMap(rows => r.insertSymbolRowInDb$(rows))
   
 ).subscribe(d => {
-  console.log(d, ' here');
+  console.log(d, arguments, ' here');
 });
 
 // const  symbolsTableStream$ = r.getSymbols$().pipe(
