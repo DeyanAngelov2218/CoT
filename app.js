@@ -42,11 +42,10 @@ class Repository {
   }
 
   query$(query, values) {
-    return this.connect$(values).pipe(
+    return this.connect$().pipe(
       switchMap(connection => {
-        console.log(connection);
         return Observable.create(observer => {
-          connection.query(query, values, (err, result) => {
+          connection.query(query, [values], (err, result) => {
             if (err) {
               console.log(err);
               observer.error(err);
@@ -60,9 +59,10 @@ class Repository {
               }
             }
             observer.complete();
-          });
-        });
-      })
+          })
+        })
+      }),
+      share()
     )
   };
   
@@ -79,8 +79,12 @@ class Repository {
     const that = this;
     const foundSymbol = that.symbols.find(v => v.name === row.Name);
     if (!!foundSymbol) {
-      const { symbol_id } = foundSymbol;
-      return of({ symbol_id, ...row });
+      if (foundSymbol.observer) {
+        return foundSymbol.observer;
+      } else {
+        const { symbol_id } = foundSymbol;
+        return of({ symbol_id, ...row });
+      }
     } else {
       return this.query$(`INSERT INTO symbols (name) VALUES ("${row.Name}")`).pipe(
         map(symbol_id => {
@@ -102,14 +106,7 @@ class Repository {
 
   insertSymbolRowInDb(rows) {
     const query = "INSERT INTO symbols_data (week, symbol_id, open_interest, comm_netto, comm_long, comm_long_oi, comm_short, comm_short_oi, large_netto, large_long, large_long_oi, large_short, large_short_oi, small_netto, small_long, small_long_oi, small_short, small_short_oi) VALUES ?"
-    this.connection.query(query, [rows], (err, res) => {
-      if (err) {
-        console.log(rows);
-        console.log(err);
-      }
-
-      console.log(res);
-    });
+    return this.query$(query, rows);
   }
   
   connect$() {
@@ -186,6 +183,7 @@ const requestData$ = url => {
       } else {
         observer.next(body);
       }
+      observer.complete();
     })
   })
 };
@@ -236,12 +234,14 @@ const requestDataStream$ = requestData$('https://cnt1.suricate-trading.de/cotde/
   map(tableBody => cheerio.load(tableBody)),
   flatMap($ => getRows$($)),
   flatMap(row => r.addSymbolId$(row)),
+  // tap(row => console.log(row)),
   map(row => r.adaptRowForDbInsert(row)),
-  bufferCount(5),
-  map(rows => r.insertSymbolRowInDb(rows))
+  bufferCount(50),
+  tap(data => console.log(data.length)),
+  flatMap(rows => r.insertSymbolRowInDb(rows))
   
 ).subscribe(d => {
-  console.log(d, ' here');
+  console.log(d, arguments, ' here');
 });
 
 // const  symbolsTableStream$ = r.getSymbols$().pipe(

@@ -12,28 +12,28 @@ const connection = mysql.createConnection({
   database: "CoT"
 });
 
-app.listen(port);
+app.get('/all-symbols', (request, response) => {
+  connection.connect(function(err) {
+    if (err) {
+      console.log(err);
+      throw err;
+    }
 
-connection.connect(function(err) {
-  if (err) {
-    throw err;
-  }
+    connection.query('SELECT * From symbols_data sd inner join symbols  s on (s.symbol_id =sd.symbol_id)', (err, res) => {
+      const bySymbolId = {};
+
+      res.forEach((row) => {
+        bySymbolId[row.symbol_id] = [];
+      });
+
+      Object.keys(bySymbolId).forEach((symbolId) => {
+        bySymbolId[symbolId] = [...bySymbolId[symbolId],  ...res.filter((row) => `${row.symbol_id}` === `${symbolId}`) ];
+      });
+
+      response.send(bySymbolId);
+      connection.end();
+    });
+  });
 });
 
-connection.query('SELECT * From symbols_data sd inner join symbols  s on (s.symbol_id =sd.symbol_id)', (err, res) => {+
-  const bySymbolId = {};
-
-  res.forEach((row) => {
-    bySymbolId[row.symbol_id] = { ...bySymbolId[row.symbol_id] }
-  })
-
-  const sorted = res.sort((a, b) => a.symbol_id !== b.symbol_id);
-
-  const test = sorted.filter((a) => a.symbol_id === 640);
-  console.log(test);
-
-  // console.log(test.filter((val) => {
-  //   return val.symbol_id === 619;
-  // }).length);
-
-})
+app.listen(port);
