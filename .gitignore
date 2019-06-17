@@ -1,2 +1,4 @@
-/node_modules
-/.idea
+node_modules
+.idea
+cot-app/node_modules
+mydata/*

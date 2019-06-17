@@ -3,7 +3,7 @@ const request = require('request');
 const mysql = require('mysql');
 const moment = require('moment');
 const { Observable, Subject, from, merge, combineLatest, of } = require('rxjs');
-const { exhaustMap, groupBy, take, concatMap, toArray, scan, filter, reduce, concat, flatMap, concatAll, mergeMap, map,
+const { groupBy, take, concatMap, toArray, scan, filter, reduce, concat, flatMap, concatAll, mergeMap, map,
   switchAll, mergeAll, switchMap, mapTo, share, tap, zip, combineAll, bufferCount } = require('rxjs/operators');
 const cheerio = require('cheerio');
 
@@ -86,36 +86,25 @@ class Repository {
         return of({ symbol_id, ...row });
       }
     } else {
-      const observer = this.query$(`INSERT INTO symbols (name) VALUES ("${row.Name}")`).pipe(
+      return this.query$(`INSERT INTO symbols (name) VALUES ("${row.Name}")`).pipe(
         map(symbol_id => {
-          const foundSymbolIndex = that.symbols.findIndex(v => v.name === row.Name);
           const symbol = { name: row.Name, symbol_id };
-          if (foundSymbolIndex > -1) {
-            that.symbols[foundSymbolIndex] = symbol;
-          } else {
-            that.symbols.push(symbol);
-          }
+          that.symbols.push(symbol);
           return { symbol_id, ...row };
         })
       );
-      const symbol = { name: row.Name, symbol_id: null, observer };
-      that.symbols.push(symbol);
-      return observer;
     }
   };
 
-  adaptRowForDbInsert$(row) {
-    const out = [];
-    Object.keys(this.insertQueryDictionary).forEach((key) => {
+  adaptRowForDbInsert(row) {
+    return Object.keys(this.insertQueryDictionary).map((key) => {
       if (row[key]) {
-        out.push(row[key]);
+        return row[key];
       }
     });
-
-    return out;
   }
 
-  insertSymbolRowInDb$(rows) {
+  insertSymbolRowInDb(rows) {
     const query = "INSERT INTO symbols_data (week, symbol_id, open_interest, comm_netto, comm_long, comm_long_oi, comm_short, comm_short_oi, large_netto, large_long, large_long_oi, large_short, large_short_oi, small_netto, small_long, small_long_oi, small_short, small_short_oi) VALUES ?"
     return this.query$(query, rows);
   }
@@ -228,7 +217,7 @@ const getRows$ = $ => {
 
 const getUrls = $ => {
   return from($('div.link a')
-  .slice(0,26)
+  .slice(0, 26)
   .map((index, link) => {
     return `https://cnt1.suricate-trading.de/cotde/${link.attribs.href}`
   }));
@@ -246,10 +235,10 @@ const requestDataStream$ = requestData$('https://cnt1.suricate-trading.de/cotde/
   flatMap($ => getRows$($)),
   flatMap(row => r.addSymbolId$(row)),
   // tap(row => console.log(row)),
-  map(row => r.adaptRowForDbInsert$(row)),
+  map(row => r.adaptRowForDbInsert(row)),
   bufferCount(50),
   tap(data => console.log(data.length)),
-  flatMap(rows => r.insertSymbolRowInDb$(rows))
+  flatMap(rows => r.insertSymbolRowInDb(rows))
   
 ).subscribe(d => {
   console.log(d, arguments, ' here');
